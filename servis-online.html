@@ -356,6 +356,7 @@ const up=s=>String(s||'').toLocaleUpperCase('tr-TR');
 const adSoyad=r=>r.tip!=='Bireysel'?(r.firma||'')+(r.musteri?' ('+r.musteri+')':''):r.musteri;
 const isDis=r=>(r.teslimSekli||'').startsWith('Adresten')||r.durum==='adres'||(r.gecmis||[]).some(g=>g.d==='adres');
 const topOf=r=>num(r.iscilik)+num(r.parca)||num(r.onayTutar)||num(r.tahmini);
+const telF=t=>{let d=String(t||'').replace(/\D/g,'');if(d.startsWith('90')&&d.length===12)d=d.slice(2);if(d.length===10)d='0'+d;if(d.length!==11||!d.startsWith('0'))return null;return d.slice(0,4)+' '+d.slice(4,7)+' '+d.slice(7)};
 const telN=t=>String(t||'').replace(/\D/g,'').replace(/^90/,'').replace(/^0/,'');
 const cihazAd=r=>[r.cihazTipi,r.marka,r.model].filter(Boolean).join(' ');
 const gun=t=>Math.floor((Date.now()-t)/86400000);
@@ -410,6 +411,7 @@ function migrate(r){
  if(r.tip==='Kurumsal'&&!r.tipV2)r.tip='Bayi';
  if(!r.odemeler){r.odemeler=[];if(num(r.alinan)>0)r.odemeler.push({t:r.tarih,tutar:num(r.alinan),sekil:'',not:'ESKİ KAYIT',u:''})}
  r.aks=r.aks||[];r.notlar=r.notlar||[];r.gecmis=r.gecmis||[];r.fotolar=r.fotolar||[];r.garanti=r.garanti||[];
+ const tf=telF(r.tel);if(tf)r.tel=tf;
  return upr(r);
 }
 async function loadAll(){
@@ -527,11 +529,12 @@ function openForm(r,pre){
 async function save(){
  const tip=$('tip').value,m=$('musteri').value.trim(),t=$('tel').value.trim(),a=$('ariza').value.trim(),f=$('firma').value.trim();
  if(!m||!t||!a||(tip!=='Bireysel'&&!f)){alert((tip!=='Bireysel'?'Firma Adı, ':'')+'Ad Soyad, Telefon ve Arıza zorunlu.');return}
+ const tf=telF(t);if(!tf){alert('Telefon 11 haneli olmalı. Örnek: 0506 161 2121');$('tel').focus();return}
  let alan=$('alan').value||$('alanDiger').value.trim();
  $('saveBtn').disabled=true;
  const id=$('editId').value;
  let r=id?data.find(x=>x.id==id):{fisNo:await nextFis(),tarih:Date.now(),durum:'bekliyor',notlar:[],gecmis:[{t:Date.now(),d:'bekliyor',u:me}],iscilik:0,parca:0,alinan:0,acan:me,usta:'',fotolar:[],garanti:[],fiyatDurum:'yok'};
- Object.assign(r,{tip,firma:tip!=='Bireysel'?f:'',musteri:m,tel:t,adres:$('adres').value.trim(),teslimSekli:$('teslimSekli').value,cihazTipi:$('cihazTipi').value,marka:$('marka').value.trim(),model:$('model').value.trim(),seri:$('seri').value.trim(),sifre:$('sifre').value.trim(),ariza:a,fiziksel:$('fiziksel').value.trim(),aksDiger:$('aksDiger').value.trim(),tahmini:num($('tahmini').value),alan,talep:$('talep').value.trim(),garantiIsi:$('garIsi').checked,garRef:$('garRef').value,aks:[...document.querySelectorAll('#aks input:checked')].map(c=>c.value)});
+ Object.assign(r,{tip,firma:tip!=='Bireysel'?f:'',musteri:m,tel:tf,adres:$('adres').value.trim(),teslimSekli:$('teslimSekli').value,cihazTipi:$('cihazTipi').value,marka:$('marka').value.trim(),model:$('model').value.trim(),seri:$('seri').value.trim(),sifre:$('sifre').value.trim(),ariza:a,fiziksel:$('fiziksel').value.trim(),aksDiger:$('aksDiger').value.trim(),tahmini:num($('tahmini').value),alan,talep:$('talep').value.trim(),garantiIsi:$('garIsi').checked,garRef:$('garRef').value,aks:[...document.querySelectorAll('#aks input:checked')].map(c=>c.value)});
  if($('faturaIst').checked)r.fatura='evet';else if(r.fatura==='evet'&&!r.faturaKesildi)r.fatura='';
  const fyNew=$('fiyatDurum').value;if(fyNew!==r.fiyatDurum){r.fiyatDurum=fyNew;if(fyNew==='onayli'){r.onayTarih=Date.now();if(!r.onayTutar)r.onayTutar=r.tahmini}}
  if(r.tahmini&&r.fiyatDurum==='yok')r.fiyatDurum='bekliyor';
@@ -1037,7 +1040,7 @@ acPick=function(i){if($('garOv').classList.contains('show')&&$('gMusteri')){cons
 const _acShow=acShow;
 acShow=function(inp,field){if($('garOv').classList.contains('show')&&$('gMusteri')){const v=inp.value.trim().toLowerCase();const box=inp.parentNode.querySelector('.ac');if(!box)return;if(v.length<2){box.style.display='none';return}const vd=v.replace(/\D/g,'');const hits=musteriler.filter(m=>field==='tel'?(vd&&m.tel.replace(/\D/g,'').includes(vd)):(m.musteri||'').toLowerCase().includes(v)||m.firma.toLowerCase().includes(v)).slice(0,8);if(!hits.length){box.style.display='none';return}box.innerHTML=hits.map(m=>`<div onmousedown="acPick(${musteriler.indexOf(m)})"><b>${esc(m.tip!=='Bireysel'?m.firma+' · '+m.musteri:m.musteri)}</b>${TIP_TAG[m.tip]||''}<small>${esc(m.tel)}</small></div>`).join('');box.style.display='block';return}_acShow(inp,field)};
 async function garSave(id){
- const m=$('gMusteri').value.trim(),t=$('gTel').value.trim(),d=$('gTarih').value;if(!m||!t||!d){alert('Ad, telefon ve satış tarihi zorunlu.');return}
+ const m=$('gMusteri').value.trim(),t=telF($('gTel').value),d=$('gTarih').value;if(!m||!t||!d){alert('Ad, telefon (11 hane, örn. 0506 161 2121) ve satış tarihi zorunlu.');return}
  const ay=num($('gAy').value)||24;const st=new Date(d).getTime();
  const x={tip:$('gTip').value,firma:up($('gFirma').value.trim()),musteri:up(m),tel:t,cihazTipi:$('gCihaz').value,marka:up($('gMarka').value.trim()),model:up($('gModel').value.trim()),seri:up($('gSeri').value.trim()),satisTarih:st,ay,bitis:new Date(new Date(st).setMonth(new Date(st).getMonth()+ay)).getTime(),faturaNo:up($('gFatura').value.trim()),not:up($('gNot').value.trim()),acan:me,t:Date.now()};
  const row={veri:x,tel:telN(t)};if(id)row.id=id;
@@ -1063,7 +1066,7 @@ async function garImport(inp){
   let ay=num(find(row,['GARANTİAY','GARANTİSÜRE','AY','SÜRE']));const yil=num(find(row,['YIL']));if(!ay&&yil)ay=yil*12;if(!ay)ay=24;
   if(!musteri||!tel||!tarih){bad.push(i+2);return}
   const tipRaw=up(find(row,['TİP','TIP','MÜŞTERİTİPİ']));const tip=tipRaw.includes('BAY')?'Bayi':tipRaw.includes('KUR')?'Kurumsal':'Bireysel';
-  out.push({tip,firma:up(find(row,['FİRMA','FIRMA','DÜKKAN'])),musteri:up(musteri),tel:String(tel),cihazTipi:(()=>{const c=up(find(row,['CİHAZ','CIHAZ','ÜRÜN','URUN']));return c.includes('LAP')?'Laptop':c.includes('MASA')||c.includes('PC')?'Masaüstü Bilgisayar':c.includes('TELEF')?'Telefon':c&&!c.includes('TV')&&!c.includes('TELEV')?'Diğer':'Televizyon'})(),marka:up(find(row,['MARKA'])),model:up(find(row,['MODEL'])),seri:up(find(row,['SERİ','SERI','SN'])),satisTarih:tarih,ay,bitis:new Date(new Date(tarih).setMonth(new Date(tarih).getMonth()+ay)).getTime(),faturaNo:up(find(row,['FATURA'])),not:up(find(row,['NOT','AÇIKLAMA'])),acan:me,t:Date.now(),import:f.name});
+  out.push({tip,firma:up(find(row,['FİRMA','FIRMA','DÜKKAN'])),musteri:up(musteri),tel:telF(tel)||String(tel),cihazTipi:(()=>{const c=up(find(row,['CİHAZ','CIHAZ','ÜRÜN','URUN']));return c.includes('LAP')?'Laptop':c.includes('MASA')||c.includes('PC')?'Masaüstü Bilgisayar':c.includes('TELEF')?'Telefon':c&&!c.includes('TV')&&!c.includes('TELEV')?'Diğer':'Televizyon'})(),marka:up(find(row,['MARKA'])),model:up(find(row,['MODEL'])),seri:up(find(row,['SERİ','SERI','SN'])),satisTarih:tarih,ay,bitis:new Date(new Date(tarih).setMonth(new Date(tarih).getMonth()+ay)).getTime(),faturaNo:up(find(row,['FATURA'])),not:up(find(row,['NOT','AÇIKLAMA'])),acan:me,t:Date.now(),import:f.name});
  });
  if(!out.length){toast('Uygun satır bulunamadı. Şablonu kullanın.',1);return}
  if(!confirm(out.length+' kayıt aktarılacak'+(bad.length?', '+bad.length+' satır atlanacak (satır: '+bad.slice(0,10).join(',')+')':'')+'. Devam?'))return;
@@ -1088,6 +1091,7 @@ function backup(){
  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='servis-yedek-'+new Date().toISOString().slice(0,10)+'.json';a.click();
 }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeAll()}));
+document.addEventListener('focusout',e=>{const t=e.target;if(t&&t.tagName==='INPUT'&&t.getAttribute('type')==='tel'){const f=telF(t.value);if(f)t.value=f;else if(t.value.trim()){t.style.borderColor='var(--red)';setTimeout(()=>t.style.borderColor='',1500)}}});
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.closest('#login')||t.id.startsWith('wat_'))return;if(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&['text','tel','search',''].includes(t.getAttribute('type')||''))){const p=t.selectionStart,v=t.value.toLocaleUpperCase('tr-TR');if(v!==t.value){t.value=v;try{t.setSelectionRange(p,p)}catch(x){}}}});
 const UPK=['firma','musteri','adres','marka','model','seri','ariza','fiziksel','aksDiger','alan','teslimEden','faturaNo','talep','garRef'];
 function upr(r){UPK.forEach(k=>{if(typeof r[k]==='string')r[k]=up(r[k])});r.aks=(r.aks||[]).map(up);if(r.konum){r.konum.yer=up(r.konum.yer);r.konum.not=up(r.konum.not)}if(r.usta)r.usta=up(r.usta);if(r.rv&&r.rv.not)r.rv.not=up(r.rv.not);if(r.alim){['personel','alan'].forEach(k=>{if(r.alim[k])r.alim[k]=up(r.alim[k])})}(r.notlar||[]).forEach(n=>n.text=up(n.text));(r.garanti||[]).forEach(g=>{g.kapsam=up(g.kapsam);g.sebep=up(g.sebep)});return r}
