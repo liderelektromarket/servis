@@ -176,23 +176,26 @@ textarea{min-height:64px;resize:vertical}
  <div class="stats" id="stats"></div>
  <div class="stats sm" id="stats2"></div>
  <div class="tools">
-  <input id="q" placeholder="Ara: müşteri, firma, telefon, fiş no, marka, model, seri no..." oninput="render()">
-  <select id="fType" onchange="render()">
+  <input id="q" placeholder="Ara: müşteri, firma, telefon, fiş no, marka, model, seri no..." onkeydown="if(event.key==='Enter')doSearch()" oninput="if(!this.value){if(listMode==='search')listMode='';render()}">
+  <button class="btn pri" onclick="doSearch()">🔍 Ara</button>
+  <select id="fType" onchange="remFilters()">
    <option value="">Tüm Cihazlar</option>
    <option>TV</option><option>Laptop</option><option>PC</option><option>Tablet</option><option>Uydu</option><option>Diğer</option>
   </select>
-  <select id="fTip" onchange="render()"><option value="">Tüm Müşteriler</option><option value="Bireysel">Bireysel</option><option value="Bayi">Bayi</option><option value="Kurumsal">Kurumsal</option></select>
-  <select id="fDis" onchange="render()"><option value="">Dükkan + Dış</option><option value="dis">Dış Servis</option><option value="dukkan">Dükkan İşi</option></select>
-  <select id="fUsta" onchange="render()"><option value="">Tüm Ustalar</option></select>
-  <select id="fShow" onchange="render()">
+  <select id="fTip" onchange="remFilters()"><option value="">Tüm Müşteriler</option><option value="Bireysel">Bireysel</option><option value="Bayi">Bayi</option><option value="Kurumsal">Kurumsal</option></select>
+  <select id="fDis" onchange="remFilters()"><option value="">Dükkan + Dış</option><option value="dis">Dış Servis</option><option value="dukkan">Dükkan İşi</option></select>
+  <select id="fUsta" onchange="remFilters()"><option value="">Tüm Ustalar</option></select>
+  <select id="fShow" onchange="remFilters()">
    <option value="aktif">Açık + Teslim Bekleyen</option>
    <option value="acik">Sadece Açık İşler</option>
    <option value="tb">Sadece Teslim Bekleyen</option>
    <option value="hepsi">Hepsi</option>
    <option value="kapali">Teslim Edilen / Kapanan</option>
   </select>
+  <button class="btn" id="filtBtn" onclick="doFilter()">Filtrele</button>
  </div>
  <div class="list" id="list"></div>
+<div class="empty" id="listEmpty" style="display:none">Bir karta tıklayın, arama yapın veya Filtrele'ye basın.</div>
 </div>
 
 <!-- FORM -->
@@ -358,6 +361,7 @@ const ARA=['bekliyor','tezgah','parca','randevu','alinacak'];
 const TB=['hazir','adres'];
 const USTA_ST=['tezgah','parca','hazir','adres','iade'];
 const WAT_DEF={
+ kayit:'Merhaba {AD}, {FIRMA} Teknik Servis. {CIHAZ} cihazınız {FIS} numarasıyla servisimize kaydedilmiştir. Cihazınızın durumunu dilediğiniz zaman bu bağlantıdan takip edebilirsiniz: {SORGU}',
  genel:'Merhaba {AD}, {FIRMA} Teknik Servis. {FIS} numaralı {CIHAZ} cihazınızın durumu: {DURUM}. Takip: {SORGU}',
  fiyat:'Merhaba {AD}, {FIRMA} Teknik Servis. {FIS} numaralı {CIHAZ} cihazınızın arıza tespiti yapıldı. Onarım ücreti {UCRET} olarak belirlenmiştir. Onarıma başlamamız için onayınızı bekliyoruz. Takip ve onay: {SORGU}',
  parca:'Merhaba {AD}, {FIRMA} Teknik Servis. {FIS} numaralı {CIHAZ} cihazınız için gerekli parça sipariş edilmiştir. Parça geldiğinde onarıma devam edilecek ve sizi bilgilendireceğiz.',
@@ -368,9 +372,9 @@ const WAT_DEF={
  randevu:'Merhaba {AD}, {FIRMA} Teknik Servis. {TARIH} tarihli randevunuzu hatırlatırız. {CIHAZ} cihazınız için sizi bekliyoruz. Adres: {ADRES}',
  alinacak:'Merhaba {AD}, {FIRMA} Teknik Servis. {CIHAZ} cihazınızı {TARIH} tarihinde adresinizden teslim almak üzere ekibimiz gelecektir. Adres: {KADRES}'
 };
-const WAT_AD={genel:'Genel / Diğer Durumlar',fiyat:'Fiyat Onayı Bekliyor',parca:'Parça Bekliyor',hazir:'Tamamlandı - Müşteri Alacak',adres:'Tamamlandı - Adrese Teslim',teslim:'Teslim Edildi',iade:'Yapılamadı / İade',randevu:'Randevu Hatırlatma',alinacak:'Adresten Alınacak'};
+const WAT_AD={kayit:'Kayıt Açıldı (takip linki)',genel:'Genel / Diğer Durumlar',fiyat:'Fiyat Onayı Bekliyor',parca:'Parça Bekliyor',hazir:'Tamamlandı - Müşteri Alacak',adres:'Tamamlandı - Adrese Teslim',teslim:'Teslim Edildi',iade:'Yapılamadı / İade',randevu:'Randevu Hatırlatma',alinacak:'Adresten Alınacak'};
 const DEF_CFG={link:'https://liderelektromarket.github.io/servis/servis-online.html',sorgu:'https://liderelektromarket.github.io/servis/sorgu.html',firma:'LİDER ELEKTROMARKET',adres:'Esenşehir Mah. Özerk Sok. No: 4/A Ümraniye/İstanbul',tel:'0216 415 51 61',wa:'0505 102 01 01',prefix:'LDR',kosul:'Cihazınızı teslim alırken bu fişi getiriniz. Arıza tespiti sonrası ücret bilgisi telefonla verilir, onay alınmadan işlem yapılmaz. Veri kaybından firmamız sorumlu değildir; önemli verilerinizi yedekleyiniz. 30 gün içinde teslim alınmayan cihazlardan firmamız sorumlu değildir. Bu belge yalnızca cihazın servise teslim alındığını gösteren bir teslim tutanağıdır. Fatura, fiş, irsaliye, sözleşme veya herhangi bir mali/yasal belge niteliği taşımaz; ücret, ödeme veya satış kanıtı olarak kullanılamaz. Yapılan işleme ait fatura, talep halinde ayrıca düzenlenir. Fişi ibraz eden kişi cihazı teslim almaya yetkili sayılır; fişin kaybolması halinde derhal servisimize bildiriniz.',wat:{...WAT_DEF}};
-let kodBackfilled=false;
+let kodBackfilled=false;let listMode='';// '' boş, 'card', 'search', 'filter'
 let data=[],gdata=[],hdata=[],cfg={...DEF_CFG},filterSt='',me='',meAd='',admin=true,rol='yonetici',pendingFis=null,roller=null;
 const $=id=>document.getElementById(id);
 const fmtD=t=>new Date(t).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -381,7 +385,7 @@ const tl=v=>num(v).toLocaleString('tr-TR')+' ₺';
 const tlr=(r,v)=>num(v).toLocaleString('tr-TR')+' '+((r&&r.pb)||'₺');
 const up=s=>String(s||'').toLocaleUpperCase('tr-TR');
 const adSoyad=r=>r.tip!=='Bireysel'?(r.firma||'')+(r.musteri?' ('+r.musteri+')':''):r.musteri;
-const isDis=r=>(r.teslimSekli||'').startsWith('Adresten')||r.durum==='adres'||(r.gecmis||[]).some(g=>g.d==='adres');
+const isDis=r=>{if((r.teslimSekli||'').startsWith('Adresten')||r.durum==='adres')return true;if(r.durum==='teslim'){const g=(r.gecmis||[]).filter(x=>x.d&&x.d!=='teslim');return g.length&&g[g.length-1].d==='adres'}return false};
 const topOf=r=>num(r.iscilik)+num(r.parca)||num(r.onayTutar)||num(r.tahmini);
 const telF=t=>{let d=String(t||'').replace(/\D/g,'');if(d.startsWith('90')&&d.length===12)d=d.slice(2);if(d.length===10)d='0'+d;if(d.length!==11||!d.startsWith('0'))return null;return d.slice(0,4)+' '+d.slice(4,7)+' '+d.slice(7)};
 const telN=t=>String(t||'').replace(/\D/g,'').replace(/^90/,'').replace(/^0/,'');
@@ -391,10 +395,10 @@ const genKod=()=>{const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let o='';const a=ne
 const now0=()=>new Date();
 function fyStrip(r){if(r.garantiIsi)return {cls:'fo',c:'g',n:'GARANTİ İŞİ — YAP'};if(r.fiyatDurum==='onayli')return {cls:'fo',c:'g',n:'FİYAT ONAYLI — YAP'};if(r.fiyatDurum==='limit')return {cls:'fl',c:'o',n:tlr(r,r.limitTutar)+' LİMİTE KADAR SORMADAN YAP'};if(r.fiyatDurum==='bekliyor')return {cls:'red',c:'r',n:'FİYAT ONAYI BEKLENİYOR — YAPMA'};return {cls:'red',c:'r',n:'ÖNCE FİYAT ÇIKAR — YAPMA'}}
 let toastTimer=null;
-function toast(m,err,undoFn){const t=$('toast');$('toastT').textContent=m;t.style.background=err?'#dc2626':'var(--navy)';t.style.display='flex';const b=$('toastB');if(undoFn){b.textContent='GERİ AL';b.style.display='';b.onclick=()=>{t.style.display='none';undoFn()}}else b.style.display='none';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',undoFn?6000:2500)}
+function toast(m,err,undoFn){const t=$('toast');$('toastT').textContent=m;t.style.background=err?'#dc2626':'var(--navy)';t.style.display='flex';const b=$('toastB');if(undoFn){b.textContent='GERİ AL';b.style.display='';b.onclick=()=>{t.style.display='none';undoFn()}}else b.style.display='none';t.style.fontSize=err?'16px':'14px';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',undoFn?6000:err?4500:2500)}
 function closeAll(){document.querySelectorAll('.ov').forEach(o=>o.classList.remove('show'));acHideAll();detLock=false}
 function toggleAdres(){const v=$('teslimSekli').value;const rv=v==='Randevulu Gelecek';$('rvTarihF').style.display=rv?'':'none';$('rvF').style.display=rv?'':'none';$('adresF').style.display=v.startsWith('Adresten')?'':'none';const al=v==='Adresten Alınacak';$('alimTarihF').style.display=al?'':'none';$('alimPersF').style.display=al?'':'none'}
-function renderChips(elId,hidId,names,val,cb){$(elId).innerHTML=names.map(n=>`<button type="button" class="${n===val?'on':''}" data-v="${esc(n)}">${esc(n)}</button>`).join('');[...$(elId).children].forEach(b=>b.onclick=()=>{$(hidId).value=b.dataset.v;[...$(elId).children].forEach(x=>x.classList.toggle('on',x===b));if(cb)cb(b.dataset.v)})}
+function renderChips(elId,hidId,names,val,cb){if(val!==undefined&&names.includes(val))$(hidId).value=val;$(elId).innerHTML=names.map(n=>`<button type="button" class="${n===val?'on':''}" data-v="${esc(n)}">${esc(n)}</button>`).join('');[...$(elId).children].forEach(b=>b.onclick=()=>{$(hidId).value=b.dataset.v;[...$(elId).children].forEach(x=>x.classList.toggle('on',x===b));if(cb)cb(b.dataset.v)})}
 function toggleSifre(){const t=$('cihazTipi').value;$('sifreF').style.display=(t==='Laptop'||t==='PC'||t==='Tablet')?'':'none';$('incF').style.display=t==='TV'?'':'none'}
 function fizHint(){$('fizHintT').style.display=$('fiziksel').value.trim()?'':'none'}
 function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`))return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
@@ -419,7 +423,7 @@ async function loadRoller(){
  document.querySelectorAll('.adm').forEach(b=>b.classList.toggle('usta-hide',!admin));document.querySelectorAll('.tools select').forEach(b=>b.classList.toggle('usta-hide',!admin));
  if(rol==='arama'){$('hatBtn').classList.remove('usta-hide')}
  $('who').textContent=me+(admin?'':rol==='arama'?' · ARAMA GÖREVLİSİ':' · USTA');
- if(rol==='arama'){filterSt='CALL'}
+ if(rol==='arama'){filterSt='CALL';listMode='card'}if(rol==='usta'){listMode='all'}
 }
 
 /* ---------- DATA ---------- */
@@ -427,7 +431,7 @@ let started=false;
 async function start(){
  if(started)return;started=true;
  const m=location.hash.match(/fis=([A-Za-z0-9\-]+)/);if(m)pendingFis=m[1];
- await loadRoller();await loadCfg();await loadAll();await loadGar();await loadHat();
+ await loadRoller();loadFilters();await loadCfg();await loadAll();await loadGar();await loadHat();
  sb.channel('kayitlar').on('postgres_changes',{event:'*',schema:'public',table:'kayitlar'},()=>loadAll()).subscribe();
  sb.channel('garantiler').on('postgres_changes',{event:'*',schema:'public',table:'garantiler'},()=>loadGar()).subscribe();
  sb.channel('hatirlatmalar').on('postgres_changes',{event:'*',schema:'public',table:'hatirlatmalar'},()=>loadHat()).subscribe();
@@ -492,7 +496,7 @@ function buildLists(){
  const md=[...new Set(data.map(r=>r.model).filter(Boolean))].sort();
  $('dlModel').innerHTML=md.map(m=>`<option value="${esc(m)}">`).join('');
  const ustalar=[...new Set([...STAFF.map(s=>s.usta),...data.map(r=>r.usta).filter(Boolean)])];
- const cur=$('fUsta').value;$('fUsta').innerHTML='<option value="">Tüm Ustalar</option>'+ustalar.map(u=>`<option ${u===cur?'selected':''}>${esc(u)}</option>`).join('');
+ const cur=$('fUsta').value||window._fu||'';window._fu='';$('fUsta').innerHTML='<option value="">Tüm Ustalar</option>'+ustalar.map(u=>`<option ${u===cur?'selected':''}>${esc(u)}</option>`).join('');
 }
 function acShow(inp,field){
  const v=inp.value.trim().toLowerCase();const box=$('ac_'+field);
@@ -596,6 +600,7 @@ function askPrint(id){
  <div class="acts" style="justify-content:flex-start">
   <button class="btn pri" onclick="printFis(${id})">🖨 Teslim Fişi (2 nüsha)</button>
   <button class="btn" onclick="printEtiket(${id})">🏷 Etiket (50x30)</button>
+  ${admin?`<button class="btn wa" onclick="waKey(${id},'kayit')">💬 WhatsApp — Takip Linki</button>`:''}
   <button class="btn lt" onclick="closeAll()">Şimdi Değil</button>
  </div>`;
  $('detOv').classList.add('show');
@@ -669,6 +674,8 @@ function render(){
   return true;
  });
  if(filterSt==='BG')list.sort((a,b)=>evT(a)-evT(b));
+ if(rol!=='usta'&&listMode===''){$('list').innerHTML='';$('listEmpty').style.display='';return}
+ $('listEmpty').style.display='none';
  $('list').innerHTML=list.length?list.map(r=>{
   const s=stOf(r.durum),top=topOf(r),kal=top-num(r.alinan);
   const ga=garAktif(r),gb=garBitti(r);
@@ -683,7 +690,11 @@ function render(){
    <div class="money">${rol!=='usta'?(top?tlr(r,top):'-'):''}<small>${admin?(kal>0?'Kalan: '+tlr(r,kal):(top?'Ödendi':'')):''}</small></div>
   </div>`}).join(''):'<div class="empty">Kayıt bulunamadı.</div>';
 }
-function setSt(k){filterSt=filterSt===k?'':k;render()}
+function setSt(k){filterSt=filterSt===k?'':k;listMode=filterSt?'card':'';if(rol!=='usta')try{localStorage.setItem('ls_card',filterSt)}catch(e){}render()}
+function doSearch(){filterSt='';listMode=$('q').value.trim()?'search':'';render()}
+function doFilter(){filterSt='';listMode='filter';remFilters();render()}
+function remFilters(){try{localStorage.setItem('ls_filt',JSON.stringify({t:$('fType').value,m:$('fTip').value,d:$('fDis').value,u:$('fUsta').value,s:$('fShow').value}))}catch(e){}}
+function loadFilters(){try{const f=JSON.parse(localStorage.getItem('ls_filt')||'null');if(f){$('fType').value=f.t||'';$('fTip').value=f.m||'';$('fDis').value=f.d||'';$('fShow').value=f.s||'aktif';window._fu=f.u||''}const c=localStorage.getItem('ls_card');if(c&&rol!=='usta'){filterSt=c;listMode='card'}}catch(e){}}
 
 /* ---------- DETAIL ---------- */
 let curDet=null,detLock=false,curView='openDet';
@@ -925,9 +936,13 @@ function askTeslim(id){
  <p style="color:var(--mut);margin:0 0 10px">${r.fisNo} · ${esc(adSoyad(r))} · ${esc(cihazAd(r))} · Toplam ${tlr(r,top)} · Alınan ${tlr(r,r.alinan)}</p>
  ${needOd?`<div class="blk b-org">${noPrice?`<div class="sec">Ücret girilmemiş</div><div class="f" style="max-width:220px;margin-bottom:8px"><label>Toplam Ücret (${r.pb||'₺'})</label><input type="number" id="tsTop" placeholder="0 = ÜCRETSİZ" oninput="$('odTutar').value=Math.max(0,num(this.value)-${num(r.alinan)})||''"></div>`:''}<div class="sec">${noPrice?'Ödeme alındı mı?':'Kalan '+tlr(r,kal)+' — ödeme alındı mı?'}</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="number" id="odTutar" value="${kal>0?kal:''}" style="width:120px"><div class="chips" id="odChips"></div><input type="hidden" id="odSekil"></div><div style="font-size:12px;color:var(--mut);margin-top:4px">Ödeme alınmadıysa tutarı boş bırak, borç kalan olarak kalır.</div></div>`:''}
  ${needFa?`<div class="blk b-navy"><div class="sec">Fatura kesilecek mi?</div><div class="chips" id="faTChips"><button onclick="[...this.parentNode.children].forEach(b=>b.classList.remove('on'));this.classList.add('on')" data-k="evet">KESİLECEK</button><button onclick="[...this.parentNode.children].forEach(b=>b.classList.remove('on'));this.classList.add('on')" data-k="hayir">KESİLMEYECEK</button></div></div>`:''}
- <div class="blk b-grn"><div class="sec">Garanti</div>${g0?(g0.ay?`🛡 <b>${esc(g0.kapsam)}: ${GAR_SURE.find(x=>x.k===g0.ay).n}</b> — süre bugünden başlar`:`GARANTİ YOK${g0.sebep?' — '+esc(g0.sebep):''}`):'<span style="color:var(--red)">Garanti girilmemiş</span>'} <button class="btn lt sm" onclick="askKonum(${id},'${r.durum}')">Değiştir</button></div>
+ ${g0||r.garantiIsi?`<div class="blk b-grn"><div class="sec">Garanti</div>${r.garantiIsi?'GARANTİ İŞİ':(g0.ay?`🛡 <b>${esc(g0.kapsam)}: ${GAR_SURE.find(x=>x.k===g0.ay).n}</b> — süre bugünden başlar`:`GARANTİ YOK${g0.sebep?' — '+esc(g0.sebep):''}`)} <button class="btn lt sm" onclick="askKonum(${id},'${r.durum}')">Değiştir</button></div>`:`<div class="blk b-grn"><div class="sec">Garanti *</div>
+ <div class="chips grn" id="gsChips"></div><input type="hidden" id="gsSure" value="">
+ <div id="gsKapsamF" style="margin-top:8px"><label>Kapsam (yapılan iş)</label><div class="chips" id="gkChips" style="margin-top:4px"></div><input type="hidden" id="gkKapsam"><input id="gkDiger" placeholder="YAPILAN İŞİ YAZIN" style="margin-top:6px;display:none"></div>
+ <div id="gsSebepF" style="margin-top:8px;display:none"><label>Garanti verilmeme sebebi</label><input id="gsSebep" placeholder="ÖRN. MÜŞTERİ PARÇA GETİRDİ · SADECE KONTROL"></div></div>`}
  <div class="acts"><button class="btn lt" onclick="openDet(${id})">Vazgeç</button><button class="btn pri" onclick="finishTeslim(${id})">Teslim Edildi</button></div>`;
  if(needOd)renderChips('odChips','odSekil',ODEME,'');
+ if($('gsChips')){renderChips('gsChips','gsSure',GAR_SURE.map(x=>x.n),'1 YIL',v=>{const yok=v==='GARANTİ YOK';$('gsKapsamF').style.display=yok?'none':'';$('gsSebepF').style.display=yok?'':'none'});$('gsSure').value='1 YIL';renderChips('gkChips','gkKapsam',GAR_KAPSAM,'',v=>{$('gkDiger').style.display=v==='DİĞER'?'':'none'})}
  $('detOv').classList.add('show');
 }
 async function finishTeslim(id){
@@ -935,7 +950,9 @@ async function finishTeslim(id){
  const t=$('odTutar')?num($('odTutar').value):0;const sk=$('odSekil')?$('odSekil').value:'';
  if(t>0){if(!sk){toast('Ödeme şeklini seç',1);return}}
  const fb=document.querySelector('#faTChips .on');if($('faTChips')&&!fb){toast('Fatura kararını seç',1);return}
- if(!r.garanti.length&&!r.garantiIsi){toast('Önce garanti bilgisini gir (Değiştir)',1);return}
+ if($('gsSure')){const sure=GAR_SURE.find(x=>x.n===$('gsSure').value);if(!sure){toast('Garanti süresini seç',1);return}let kapsam=$('gkKapsam').value;if(kapsam==='DİĞER')kapsam=$('gkDiger').value.trim();if(sure.k>0&&!kapsam){toast('Garanti kapsamını seç (LED BAR, PANEL...)',1);return}
+  r.garanti=[{ay:sure.k,kapsam:sure.k>0?kapsam:'',sebep:sure.k>0?'':$('gsSebep').value.trim(),baslangic:Date.now(),bitis:sure.k>0?new Date(new Date().setMonth(new Date().getMonth()+sure.k)).getTime():0,u:me}];logEv(r,sure.k>0?'Garanti: '+kapsam+' '+sure.n:'Garanti yok')}
+ if(!r.garanti.length&&!r.garantiIsi){toast('Garanti bilgisi eksik',1);return}
  const tt=$('tsTop')?num($('tsTop').value):0;if(tt>0){r.iscilik=tt;r.parca=0;r.onayTutar=tt;r.fiyatDurum='onayli';r.onayTarih=r.onayTarih||Date.now();logEv(r,'Teslimde ücret girildi: '+tlr(r,tt))}
  if(t>0){r.odemeler.push({t:Date.now(),tutar:t,sekil:sk,not:'TESLİMDE',u:me,pb:r.pb||'₺'});sumOd(r);logEv(r,'Ödeme: '+tlr(r,t)+' '+sk)}
  if(fb){r.fatura=fb.dataset.k;logEv(r,'Fatura: '+fb.textContent)}
@@ -947,12 +964,13 @@ async function addNote(id){const v=$('newNote').value.trim();if(!v)return;const 
 async function del(id){if(!admin)return;if(!confirm('Bu kayıt kalıcı olarak silinecek. Emin misin?'))return;const {error}=await sb.from('kayitlar').delete().eq('id',id);if(error){toast('Silinemedi',1);return}closeAll();await loadAll()}
 
 /* ---------- WHATSAPP ---------- */
-function waText(r){
+function waText(r,forceKey){
  const s=stOf(r.durum),top=topOf(r),kal=top-num(r.alinan);
- let key='genel';
+ let key=forceKey||'genel';
+ if(!forceKey){
  if(r.durum==='randevu')key='randevu';else if(r.durum==='alinacak')key='alinacak';
  else if(r.fiyatDurum==='bekliyor'&&!KAPALI.includes(r.durum)&&r.tahmini)key='fiyat';
- else if(['parca','hazir','adres','teslim','iade'].includes(r.durum))key=r.durum;
+ else if(['parca','hazir','adres','teslim','iade'].includes(r.durum))key=r.durum;}
  let msg=(cfg.wat&&cfg.wat[key])||WAT_DEF[key]||WAT_DEF.genel;
  const ga=garAktif(r);
  const tarih=r.durum==='randevu'?(r.rv&&r.rv.tarih?fmtD(r.rv.tarih):''):r.durum==='alinacak'?(r.alim&&r.alim.tarih?fmtD(r.alim.tarih):''):fmtDay(r.tarih);
@@ -960,6 +978,7 @@ function waText(r){
   KALANM:kal>0?' Kalan ücret: '+tlr(r,kal)+'.':'',GARANTIM:ga.length?' Garanti: '+ga.map(g=>g.kapsam+' '+GAR_SURE.find(x=>x.k===g.ay).n+' ('+fmtDay(g.bitis)+' tarihine kadar)').join(', ')+'.':'',GARANTI:ga.length?ga.map(g=>g.kapsam+' '+GAR_SURE.find(x=>x.k===g.ay).n).join(', '):''};
  return msg.replace(/\{(\w+)\}/g,(m,k)=>rep[k]!==undefined?rep[k]:m);
 }
+function waKey(id,key){const r=data.find(x=>x.id==id);let tel=r.tel.replace(/\D/g,'');if(tel.startsWith('0'))tel='9'+tel;if(tel.length===10)tel='90'+tel;window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(waText(r,key)))}
 function waSorgu(id){const r=data.find(x=>x.id==id);let tel=r.tel.replace(/\D/g,'');if(tel.startsWith('0'))tel='9'+tel;if(tel.length===10)tel='90'+tel;const msg=`Merhaba ${r.musteri}, ${cfg.firma} Teknik Servis. ${r.fisNo} numaralı ${cihazAd(r)} cihazınızın servis durumunu bu bağlantıdan takip edebilirsiniz: ${qrData(r)}`;window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg))}
 function waMsg(id){
  const r=data.find(x=>x.id==id);
