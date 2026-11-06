@@ -123,6 +123,11 @@ textarea{min-height:64px;resize:vertical}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;display:none;z-index:200;align-items:center;gap:12px;max-width:94vw}
 #toast button{background:var(--org);color:#fff;border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer;font-size:13px}
 .usta-hide{display:none!important}
+.oz{font-size:16px}.oz .r{display:grid;grid-template-columns:150px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);align-items:start}
+.oz .r label{font-size:12px;padding-top:3px}.oz .r div{font-weight:600;line-height:1.3}
+.oz .r.big div{font-size:18px}.oz .r.yel{background:#fffbeb;margin:0 -8px;padding:9px 8px;border-radius:8px}
+.ibtn{border:1.5px solid var(--bd);background:#fff;color:var(--navy);border-radius:999px;width:30px;height:30px;font-weight:900;cursor:pointer;font-size:14px;flex:none}
+@media(max-width:700px){.oz .r{grid-template-columns:1fr;gap:2px}}
 @media(pointer:coarse){.btn{padding:12px 16px;font-size:15px}.chips button{padding:11px 16px;font-size:14px}.statusbtns button{padding:13px 12px;font-size:14px}input,select,textarea{font-size:16px;padding:11px}.row{padding:14px}}
 .strip{border-radius:10px;padding:12px 14px;margin-bottom:10px;font-weight:800;font-size:16px;color:#fff;display:flex;align-items:center;gap:10px}
 .strip.g{background:var(--grn)}.strip.o{background:var(--org)}.strip.r{background:var(--red)}
@@ -658,7 +663,7 @@ function render(){
    :r.durum==='alinacak'?'📍 '+esc(r.adres)+(r.alim&&r.alim.tarih?' · '+fmtD(r.alim.tarih):'')+(r.alim&&r.alim.personel?' · '+esc(r.alim.personel):'')
    :esc(r.ariza).slice(0,50);
   return `<div class="row ${isDis(r)?'dis':''}" onclick="openDet(${r.id})">
-   <div class="fis">${r.fisNo}${isDis(r)?'<span class="tag dis" style="margin:0 0 0 4px">🚗 DIŞ</span>':''}<small>${fmtDay(r.tarih)} · ${gun(r.tarih)} gün</small></div>
+   <div class="fis"><span style="display:flex;align-items:center;gap:6px"><button class="ibtn" onclick="event.stopPropagation();ozet(${r.id})" title="Özet">ℹ</button>${r.fisNo}${isDis(r)?'<span class="tag dis" style="margin:0 0 0 4px">🚗 DIŞ</span>':''}</span><small>${fmtDay(r.tarih)} · ${gun(r.tarih)} gün</small></div>
    <div class="m"><b>${esc(adSoyad(r))}${TIP_TAG[r.tip]||''}</b><span>${admin?esc(r.tel):''}</span></div>
    <div class="m"><b>${esc(cihazAd(r))}${r.fotolar.length?' <span style="font-size:12px">📷'+r.fotolar.length+'</span>':''}</b><span>${sub}${r.talep?'<span class="tag yel">⚠ ÖZEL TALEP</span>':''}${r.garantiIsi?'<span class="tag gri">GARANTİ İŞİ</span>':''}${r.usta?'<span class="tag usta">'+esc(r.usta)+'</span>':''}${r.konum&&r.konum.yer&&!KAPALI.includes(r.durum)?'<span class="tag kn">📍 '+esc([r.konum.yer,r.konum.not].filter(Boolean).join(' · '))+'</span>':''}${['hazir','adres','iade'].includes(r.durum)&&!(r.konum&&r.konum.yer)?'<span class="tag red">KONUM YOK</span>':''}</span></div>
    <div><span class="badge" style="background:${s.c}">${s.n}</span>${r.fatura==='evet'?`<span class="tag ${r.faturaKesildi?'fo':'fy'}" style="margin:4px 0 0 0;display:inline-block">${r.faturaKesildi?'FATURALI':'FATURA KESİLECEK'}</span>`:''}${r.aranacak&&!KAPALI.includes(r.durum)&&admin?`<br><span class="tag call" style="margin:4px 0 0">📞 ARANACAK · ${esc(r.aranacak.sebep)}</span>`:''}${!KAPALI.includes(r.durum)?`<br><span class="tag ${admin?(FY[r.fiyatDurum].cls||'gri'):fyStrip(r).cls}" style="margin:4px 0 0">${admin?FY[r.fiyatDurum].n+(r.fiyatDurum==='limit'?' '+tlr(r,r.limitTutar):''):fyStrip(r).n}</span>`:''}${r.durum==='teslim'?(ga.length?`<br><span class="tag gar" style="margin:4px 0 0">🛡 GARANTİDE · ${garKalan(ga[0])} GÜN</span>`:gb.length?`<br><span class="tag gri" style="margin:4px 0 0">GARANTİ BİTTİ</span>`:''):''}</div>
@@ -675,7 +680,7 @@ function openDet(id){
  const ustalar=[...new Set([...STAFF.map(x=>x.usta),...(r.usta&&!STAFF.some(x=>x.usta===r.usta)?[r.usta]:[])])];
  const ga=garAktif(r);
  $('det').innerHTML=`
- <h2>${r.fisNo} <span class="badge" style="background:${s.c}">${s.n}</span>${TIP_TAG[r.tip]||''}${isDis(r)?'<span class="tag dis">🚗 DIŞ SERVİS</span>':''}${r.garantiIsi?'<span class="tag gri">GARANTİ İŞİ'+(r.garRef?' · '+esc(r.garRef):'')+'</span>':''}<button class="x" onclick="closeAll()">×</button></h2>
+ <h2>${r.fisNo} <button class="btn lt sm" onclick="ozet(${r.id})">ℹ ÖZET</button> <span class="badge" style="background:${s.c}">${s.n}</span>${TIP_TAG[r.tip]||''}${isDis(r)?'<span class="tag dis">🚗 DIŞ SERVİS</span>':''}${r.garantiIsi?'<span class="tag gri">GARANTİ İŞİ'+(r.garRef?' · '+esc(r.garRef):'')+'</span>':''}<button class="x" onclick="closeAll()">×</button></h2>
  ${!KAPALI.includes(r.durum)?`<div class="strip ${fyStrip(r).c}">${fyStrip(r).c==='g'?'✅':fyStrip(r).c==='o'?'⚠️':'⛔'} ${fyStrip(r).n}</div>`:''}
  ${r.talep?`<div class="talep"><b>⚠ MÜŞTERİ TALEBİ:</b> ${esc(r.talep)}</div>`:''}
  ${admin&&r.aranacak&&!KAPALI.includes(r.durum)?`<div class="info warn" style="border-color:#fca5a5;background:#fef2f2"><b>📞 MÜŞTERİ ARANACAK — ${esc(r.aranacak.sebep)}</b><br><small style="color:var(--mut)">${fmtD(r.aranacak.t)} · ${esc(r.aranacak.u||'')}</small><div class="acts" style="justify-content:flex-start;margin-top:8px"><button class="btn pri" onclick="arandi(${r.id})">✔ Müşteri Arandı</button><button class="btn wa" onclick="waMsg(${r.id})">WhatsApp</button><button class="btn lt" onclick="hatForm({fis:${r.id},konu:'TEKRAR ARA — ${esc(r.aranacak.sebep)}'})">📌 Sonra Ara</button></div></div>`:''}
@@ -754,6 +759,39 @@ function openDet(id){
  </div>`;
  if(admin)renderChips('odChips','odSekil',ODEME,'');
  $('detOv').classList.add('show');
+}
+function ozetHtml(r){
+ const s=stOf(r.durum),fs=fyStrip(r);const ga=garAktif(r);
+ const R=(l,v,cls)=>v?`<div class="r ${cls||''}"><label>${l}</label><div>${v}</div></div>`:'';
+ return `<div class="oz">
+ ${!KAPALI.includes(r.durum)?`<div class="strip ${fs.c}" style="margin-bottom:6px">${fs.c==='g'?'✅':fs.c==='o'?'⚠️':'⛔'} ${fs.n}</div>`:''}
+ ${R('DURUM',`<span class="badge" style="background:${s.c}">${s.n}</span>${r.usta?' &nbsp;🔧 '+esc(r.usta):''}${r.konum&&r.konum.yer?' &nbsp;📍 '+esc([r.konum.yer,r.konum.not].filter(Boolean).join(' · ')):''}${r.parcaNot&&r.durum==='parca'?'<br>🔩 '+esc(r.parcaNot):''}`)}
+ ${R('MÜŞTERİ',esc(adSoyad(r))+(TIP_TAG[r.tip]||'')+(admin&&r.tel?'<br>'+esc(r.tel):''),'big')}
+ ${R('CİHAZ',esc(cihazAd(r))+(r.seri?'<br><span style="font-weight:400">S/N '+esc(r.seri)+'</span>':'')+(r.sifre?'<br><span style="font-weight:400">ŞİFRE: '+esc(r.sifre)+'</span>':''),'big')}
+ ${R('ARIZA ŞİKAYETİ',esc(r.ariza),'big')}
+ ${R('FİZİKSEL DURUM',esc(r.fiziksel)||'-')}
+ ${R('AKSESUARLAR',esc([...r.aks,r.aksDiger].filter(Boolean).join(', '))||'BELİRTİLMEDİ')}
+ ${r.talep?R('⚠ MÜŞTERİ TALEBİ',esc(r.talep),'yel'):''}
+ ${r.rv&&r.rv.not?R('RANDEVU NOTU',esc(r.rv.not)):''}
+ ${r.oneri&&r.fiyatDurum!=='onayli'?R('USTA ÖNERİSİ',tlr(r,r.oneri.tutar)+(r.oneri.not?' — '+esc(r.oneri.not):'')):''}
+ ${r.garantiIsi?R('GARANTİ İŞİ',esc(r.garRef||'EVET')):''}
+ ${r.garanti.length?R('GARANTİ',r.garanti.map(g=>g.ay>0?esc(g.kapsam)+' '+GAR_SURE.find(x=>x.k===g.ay).n+(r.durum==='teslim'?' → '+fmtDay(g.bitis):''):'YOK'+(g.sebep?' — '+esc(g.sebep):'')).join('<br>')):''}
+ ${R('TESLİM ALINDI',fmtD(r.tarih)+' · '+esc(r.alan||'-')+' · '+esc(r.teslimSekli)+(r.adres?'<br>📍 '+esc(r.adres):''))}
+ ${r.notlar.length?R('SON NOT',esc(r.notlar[r.notlar.length-1].text)+' <span style="font-weight:400;color:var(--mut)">('+fmtD(r.notlar[r.notlar.length-1].t)+')</span>'):''}
+ ${r.fotolar.length?R('FOTOĞRAF',r.fotolar.length+' ADET'):''}
+ </div>`;
+}
+function ozet(id){
+ const r=data.find(x=>x.id==id);if(!r)return;closeAll();detLock=true;curDet=id;
+ $('det').innerHTML=`<h2>ℹ ${r.fisNo}<button class="x" onclick="openDet(${id})">×</button></h2>${ozetHtml(r)}
+ <div class="acts"><button class="btn lt" onclick="printOzet(${id})">🖨 Yazdır</button><button class="btn pri" onclick="openDet(${id})">Kaydı Aç</button></div>`;
+ $('detOv').classList.add('show');
+}
+function printOzet(id){
+ const r=data.find(x=>x.id==id);const s=stOf(r.durum);
+ const rows=[['DURUM',s.n+(r.usta?' · '+r.usta:'')+(r.konum&&r.konum.yer?' · '+[r.konum.yer,r.konum.not].filter(Boolean).join(' '):'')],['MÜŞTERİ',adSoyad(r)+(admin&&r.tel?' · '+r.tel:'')],['CİHAZ',cihazAd(r)+(r.seri?' · S/N '+r.seri:'')],['ARIZA',r.ariza],['FİZİKSEL DURUM',r.fiziksel||'-'],['AKSESUARLAR',[...r.aks,r.aksDiger].filter(Boolean).join(', ')||'BELİRTİLMEDİ'],['MÜŞTERİ TALEBİ',r.talep||''],['FİYAT',fyStrip(r).n],['TESLİM ALINDI',fmtD(r.tarih)+' · '+(r.alan||'-')]].filter(x=>x[1]);
+ const css=`@page{size:A5 portrait;margin:8mm}body{font-family:Arial,sans-serif;font-size:12px;color:#000;margin:0;text-transform:uppercase}h2{margin:0 0 6px;font-size:18px;color:#0E1A2B}table{width:100%;border-collapse:collapse}td{border:1px solid #0E1A2B;padding:6px 7px;vertical-align:top;font-size:12px}td:first-child{width:30%;font-weight:bold;background:#EEF2F7}`;
+ printHTML(css,`<h2>${r.fisNo} — SERVİS ÖZETİ</h2><table>${rows.map(([a,b])=>`<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>`);
 }
 function logEv(r,m){r.gecmis.push({t:Date.now(),m,u:me})}
 async function benAldim(id,u){const r=data.find(x=>x.id==id);r.usta=u;r.durum='tezgah';r.gecmis.push({t:Date.now(),d:'tezgah',u:me});logEv(r,'Usta: '+u+' (cihazı aldı)');if(await dbSave(r)){await loadAll();toast(u+' aldı — Tezgahta')}}
