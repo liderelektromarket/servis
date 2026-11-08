@@ -248,7 +248,7 @@ textarea{min-height:64px;resize:vertical}
   <div class="f"><label>Teslim Şekli</label><select id="teslimSekli" onchange="toggleAdres()"><option>Müşteri Getirdi</option><option>Randevulu Gelecek</option><option>Adresten Alınacak</option><option>Adresten Alındı</option></select></div>
   <div class="f" id="rvTarihF" style="display:none"><label>Randevu Tarih / Saat</label><input id="rvTarih" type="datetime-local"></div>
   <div class="f w" id="rvF" style="display:none"><label>Randevu Notu (yapılacak iş, gereken parça)</label><input id="rvNot" placeholder="ÖRN. 55 LG PANEL DEĞİŞİMİ - PANEL STOKTA VAR"><label class="cb" style="margin-top:6px"><input type="checkbox" id="rvBekle" checked>MÜŞTERİ BEKLEYEREK ALACAK</label></div>
-  <div class="f w" id="adresF" style="display:none"><label>Adres</label><input id="adres"></div>
+  <div class="f w" id="adresF"><label id="adresL">Adres <span style="font-weight:400">(isteğe bağlı — dış serviste zorunlu)</span></label><input id="adres" placeholder="MAHALLE, SOKAK, NO, İLÇE"></div>
   <div class="f" id="alimTarihF" style="display:none"><label>Alınacak Tarih / Saat</label><input id="alimTarih" type="datetime-local"></div>
   <div class="f w" id="alimPersF" style="display:none"><label>Almaya Gidecek Personel</label><div class="chips" id="alimChips"></div><input type="hidden" id="alimPers"></div>
  </div>
@@ -375,7 +375,7 @@ const ST=[
  {k:'hazir',n:'Hazır - Müşteri Alacak',c:'#16a34a'},
  {k:'adres',n:'Hazır - Adrese Gidecek',c:'#0f766e'},
  {k:'teslim',n:'Teslim Edildi',c:'#0E1A2B'},
- {k:'iade',n:'Yapılamadı / İade',c:'#dc2626'}
+ {k:'iade',n:'Yapılamadı - İade Edilecek',c:'#dc2626'}
 ];
 const ODEME=['NAKİT EVRAKSIZ','HAVALE','K.KARTI'];
 const KONUM=['TEKNİK SERVİS','DEPO','SHOWROOM','DİĞER'];
@@ -390,9 +390,10 @@ const FY={yok:{n:'Fiyat Verilmedi',cls:''},limit:{n:'Limit Onaylı',cls:'fl'},be
 const CIHAZ_MIG={'Televizyon':'TV','Masaüstü Bilgisayar':'PC','Telefon':'Diğer'};
 const TIP_TAG={Bayi:'<span class="tag bayi">BAYİ</span>',Kurumsal:'<span class="tag kur">KURUMSAL</span>',Bireysel:''};
 const stOf=k=>ST.find(s=>s.k===k)||ST[2];
-const KAPALI=['teslim','iade'];
+const KAPALI=['teslim'];
 const ARA=['bekliyor','tezgah','parca','randevu','alinacak'];
-const TB=['hazir','adres'];
+const TB=['hazir','adres','iade'];
+const yapilamadi=r=>r.durum==='iade'||(r.durum==='teslim'&&!!r.yapilamadi);
 const USTA_ST=['tezgah','parca','hazir','adres','iade'];
 const WAT_DEF={
  kayit:'Merhaba {AD}, {FIRMA} Teknik Servis. {CIHAZ} cihazınız {FIS} numarasıyla servisimize kaydedilmiştir. Cihazınızın durumunu dilediğiniz zaman bu bağlantıdan takip edebilirsiniz: {SORGU}',
@@ -406,7 +407,7 @@ const WAT_DEF={
  randevu:'Merhaba {AD}, {FIRMA} Teknik Servis. {TARIH} tarihli randevunuzu hatırlatırız. {CIHAZ} cihazınız için sizi bekliyoruz. Adres: {ADRES}',
  alinacak:'Merhaba {AD}, {FIRMA} Teknik Servis. {CIHAZ} cihazınızı {TARIH} tarihinde adresinizden teslim almak üzere ekibimiz gelecektir. Adres: {KADRES}'
 };
-const WAT_AD={kayit:'Kayıt Açıldı (takip linki)',genel:'Genel / Diğer Durumlar',fiyat:'Fiyat Onayı Bekliyor',parca:'Parça Bekliyor',hazir:'Hazır - Müşteri Alacak',adres:'Hazır - Adrese Gidecek',teslim:'Teslim Edildi',iade:'Yapılamadı / İade',randevu:'Randevu Hatırlatma',alinacak:'Adresten Alınacak'};
+const WAT_AD={kayit:'Kayıt Açıldı (takip linki)',genel:'Genel / Diğer Durumlar',fiyat:'Fiyat Onayı Bekliyor',parca:'Parça Bekliyor',hazir:'Hazır - Müşteri Alacak',adres:'Hazır - Adrese Gidecek',teslim:'Teslim Edildi',iade:'Yapılamadı - İade Edilecek',randevu:'Randevu Hatırlatma',alinacak:'Adresten Alınacak'};
 const DEF_CFG={link:'https://liderelektromarket.github.io/servis/servis-online.html',sorgu:'https://liderelektromarket.github.io/servis/sorgu.html',firma:'LİDER ELEKTROMARKET',adres:'Esenşehir Mah. Özerk Sok. No: 4/A Ümraniye/İstanbul',tel:'0216 415 51 61',wa:'0505 102 01 01',prefix:'LDR',kosul:'Cihazınızı teslim alırken bu fişi getiriniz. Arıza tespiti sonrası ücret bilgisi telefonla verilir, onay alınmadan işlem yapılmaz. Veri kaybından firmamız sorumlu değildir; önemli verilerinizi yedekleyiniz. 30 gün içinde teslim alınmayan cihazlardan firmamız sorumlu değildir. Bu belge yalnızca cihazın servise teslim alındığını gösteren bir teslim tutanağıdır. Fatura, fiş, irsaliye, sözleşme veya herhangi bir mali/yasal belge niteliği taşımaz; ücret, ödeme veya satış kanıtı olarak kullanılamaz. Yapılan işleme ait fatura, talep halinde ayrıca düzenlenir. Fişi ibraz eden kişi cihazı teslim almaya yetkili sayılır; fişin kaybolması halinde derhal servisimize bildiriniz.',wat:{...WAT_DEF}};
 let kodBackfilled=false;let listMode='';// '' boş, 'card', 'search', 'filter'
 let data=[],gdata=[],hdata=[],cdata=[],cfg={...DEF_CFG},filterSt='',me='',meAd='',admin=true,rol='yonetici',pendingFis=null,roller=null;
@@ -435,7 +436,7 @@ function fyStrip(r){if(r.garantiIsi)return {cls:'fo',c:'g',n:'GARANTİ İŞİ �
 let toastTimer=null;
 function toast(m,err,undoFn){const t=$('toast');$('toastT').textContent=m;t.style.background=err?'#dc2626':'var(--navy)';t.style.display='flex';const b=$('toastB');if(undoFn){b.textContent='GERİ AL';b.style.display='';b.onclick=()=>{t.style.display='none';undoFn()}}else b.style.display='none';t.style.fontSize=err?'16px':'14px';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',undoFn?6000:err?4500:2500)}
 function closeAll(){document.querySelectorAll('.ov').forEach(o=>o.classList.remove('show'));acHideAll();detLock=false}
-function toggleAdres(){const v=$('teslimSekli').value;const rv=v==='Randevulu Gelecek';$('rvTarihF').style.display=rv?'':'none';$('rvF').style.display=rv?'':'none';$('adresF').style.display=v.startsWith('Adresten')?'':'none';const al=v==='Adresten Alınacak';$('alimTarihF').style.display=al?'':'none';$('alimPersF').style.display=al?'':'none'}
+function toggleAdres(){const v=$('teslimSekli').value;const rv=v==='Randevulu Gelecek';$('rvTarihF').style.display=rv?'':'none';$('rvF').style.display=rv?'':'none';const dis=v.startsWith('Adresten')||rv;$('adresL').innerHTML=dis?'Adres *':'Adres <span style="font-weight:400">(isteğe bağlı — dış serviste zorunlu)</span>';const al=v==='Adresten Alınacak';$('alimTarihF').style.display=al?'':'none';$('alimPersF').style.display=al?'':'none'}
 function renderChips(elId,hidId,names,val,cb){if(val!==undefined&&names.includes(val))$(hidId).value=val;$(elId).innerHTML=names.map(n=>`<button type="button" class="${n===val?'on':''}" data-v="${esc(n)}">${esc(n)}</button>`).join('');[...$(elId).children].forEach(b=>b.onclick=()=>{$(hidId).value=b.dataset.v;[...$(elId).children].forEach(x=>x.classList.toggle('on',x===b));if(cb)cb(b.dataset.v)})}
 function toggleSifre(){const t=$('cihazTipi').value;$('sifreF').style.display=(t==='Laptop'||t==='PC'||t==='Tablet')?'':'none';$('incF').style.display=t==='TV'?'':'none'}
 function fizHint(){$('fizHintT').style.display=$('fiziksel').value.trim()?'':'none'}
@@ -613,6 +614,7 @@ async function save(){
  const tip=$('tip').value,m=$('musteri').value.trim(),t=$('tel').value.trim(),a=$('ariza').value.trim(),f=$('firma').value.trim();
  if(!m||!t||!a||(tip!=='Bireysel'&&!f)){alert((tip!=='Bireysel'?'Firma Adı, ':'')+'Ad Soyad, Telefon ve Arıza zorunlu.');return}
  const tf=telF(t);if(!tf){alert('Telefon 11 haneli olmalı. Örnek: 0506 161 2121');$('tel').focus();return}
+ {const ts=$('teslimSekli').value;if((ts.startsWith('Adresten')||ts==='Randevulu Gelecek')&&!$('adres').value.trim()){alert('Dış servis için adres zorunlu.');$('adres').focus();return}}
  let alan=$('alan').value||$('alanDiger').value.trim();
  $('saveBtn').disabled=true;
  const id=$('editId').value;
@@ -716,7 +718,7 @@ function render(){
    <div class="fis"><span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><button class="ibtn" onclick="event.stopPropagation();ozet(${r.id})" title="Özet">ℹ</button>${r.fisNo}</span><small>${fmtDay(r.tarih)} · ${gun(r.tarih)} gün${isDis(r)?' <span class="tag dis" style="margin:0;font-size:10px;padding:1px 5px">🚗 DIŞ</span>':''}${(()=>{const i=sozInfo(r);return i?' <span class="tag soz '+i.k+'" style="margin:0;font-size:10px;padding:1px 5px">'+i.n+'</span>':''})()}</small></div>
    <div class="m"><b>${esc(adSoyad(r))}${TIP_TAG[r.tip]||''}</b><span>${esc(r.tel)}</span></div>
    <div class="m"><b>${esc(cihazAd(r))}${r.fotolar.length?' <span style="font-size:12px">📷'+r.fotolar.length+'</span>':''}</b><span>${sub}${r.talep?'<span class="tag yel">⚠ ÖZEL TALEP</span>':''}${r.garantiIsi?'<span class="tag gri">GARANTİ İŞİ</span>':''}${r.usta?'<span class="tag usta">🔧 '+esc(r.usta)+'</span>':''}${HB_ST.includes(r.durum)?(hbGerek(r)?'<span class="tag call">📞 HABER VERİLMEDİ</span>':'<span class="tag ok">✔ HABER VERİLDİ</span>'):''}${r.konum&&r.konum.yer&&!KAPALI.includes(r.durum)?'<span class="tag kn">📍 '+esc([r.konum.yer,r.konum.not].filter(Boolean).join(' · '))+'</span>':''}${['hazir','adres','iade'].includes(r.durum)&&!(r.konum&&r.konum.yer)?'<span class="tag red">KONUM YOK</span>':''}</span></div>
-   <div><span class="badge" style="background:${s.c}">${s.n}</span>${r.fatura==='evet'?`<span class="tag ${r.faturaKesildi?'fo':'fy'}" style="margin:4px 0 0 0;display:inline-block">${r.faturaKesildi?'FATURALI':'FATURA KESİLECEK'}</span>`:''}${!KAPALI.includes(r.durum)?`<br><span class="tag ${FY[r.fiyatDurum].cls||'gri'}" style="margin:4px 0 0">${FY[r.fiyatDurum].n+(r.fiyatDurum==='limit'?' '+tlr(r,r.limitTutar):'')}</span>`:''}${r.durum==='teslim'?(ga.length?`<br><span class="tag gar" style="margin:4px 0 0">🛡 GARANTİDE · ${garKalan(ga[0])} GÜN</span>`:gb.length?`<br><span class="tag gri" style="margin:4px 0 0">GARANTİ BİTTİ</span>`:''):''}</div>
+   <div><span class="badge" style="background:${s.c}">${s.n}</span>${r.durum==='teslim'&&r.yapilamadi?'<span class="tag call" style="margin:4px 0 0 0;display:inline-block">YAPILAMADI</span>':''}${r.fatura==='evet'?`<span class="tag ${r.faturaKesildi?'fo':'fy'}" style="margin:4px 0 0 0;display:inline-block">${r.faturaKesildi?'FATURALI':'FATURA KESİLECEK'}</span>`:''}${!KAPALI.includes(r.durum)&&r.durum!=='iade'?`<br><span class="tag ${FY[r.fiyatDurum].cls||'gri'}" style="margin:4px 0 0">${FY[r.fiyatDurum].n+(r.fiyatDurum==='limit'?' '+tlr(r,r.limitTutar):'')}</span>`:''}${r.durum==='teslim'?(ga.length?`<br><span class="tag gar" style="margin:4px 0 0">🛡 GARANTİDE · ${garKalan(ga[0])} GÜN</span>`:gb.length?`<br><span class="tag gri" style="margin:4px 0 0">GARANTİ BİTTİ</span>`:''):''}</div>
    <div class="money">${top?tlr(r,top):'-'}<small>${kal>0?'Kalan: '+tlr(r,kal):(top?'Ödendi':'')}</small></div>
   </div>`}).join(''):'<div class="empty">Kayıt bulunamadı.</div>';
 }
@@ -734,8 +736,8 @@ function openDet(id){
  const ustalar=[...new Set([...STAFF.map(x=>x.usta),...(r.usta&&!STAFF.some(x=>x.usta===r.usta)?[r.usta]:[])])];
  const ga=garAktif(r);
  $('det').innerHTML=`
- <h2>${r.fisNo} <button class="btn lt sm" onclick="ozet(${r.id})">ℹ ÖZET</button> <span class="badge" style="background:${s.c}">${s.n}</span>${TIP_TAG[r.tip]||''}${isDis(r)?'<span class="tag dis">🚗 DIŞ SERVİS</span>':''}${r.garantiIsi?'<span class="tag gri">GARANTİ İŞİ'+(r.garRef?' · '+esc(r.garRef):'')+'</span>':''}<button class="x" onclick="closeAll()">×</button></h2>
- ${!KAPALI.includes(r.durum)?`<div class="strip ${fyStrip(r).c}">${fyStrip(r).c==='g'?'✅':fyStrip(r).c==='o'?'⚠️':'⛔'} ${fyStrip(r).n}</div>`:''}
+ <h2>${r.fisNo} <button class="btn lt sm" onclick="ozet(${r.id})">ℹ ÖZET</button> <span class="badge" style="background:${s.c}">${s.n}</span>${r.durum==='teslim'&&r.yapilamadi?'<span class="tag call">ONARIM YAPILAMADI</span>':''}${TIP_TAG[r.tip]||''}${isDis(r)?'<span class="tag dis">🚗 DIŞ SERVİS</span>':''}${r.garantiIsi?'<span class="tag gri">GARANTİ İŞİ'+(r.garRef?' · '+esc(r.garRef):'')+'</span>':''}<button class="x" onclick="closeAll()">×</button></h2>
+ ${!KAPALI.includes(r.durum)&&r.durum!=='iade'?`<div class="strip ${fyStrip(r).c}">${fyStrip(r).c==='g'?'✅':fyStrip(r).c==='o'?'⚠️':'⛔'} ${fyStrip(r).n}</div>`:''}
  ${r.talep?`<div class="talep"><b>⚠ MÜŞTERİ TALEBİ:</b> ${esc(r.talep)}</div>`:''}
  ${(()=>{const i=sozInfo(r);return i?`<div class="info" style="background:${i.k==='r'?'#fee2e2':'#fff3e8'};border:1px solid ${i.k==='r'?'#fca5a5':'#f7c9a8'};font-weight:800;font-size:16px">${i.n} — TESLİM SÖZÜ VERİLDİ</div>`:''})()}
  ${hbBox(r)}
@@ -755,7 +757,7 @@ function openDet(id){
  <div class="chips" id="knChips">${KONUM.map(x=>`<button class="${x===(r.konum||{}).yer?'on':''}" onclick="[...this.parentNode.children].forEach(b=>b.classList.remove('on'));this.classList.add('on');saveKonum(${r.id})">${x}</button>`).join('')}</div>
  <div class="f" style="margin-top:8px"><label>Raf / Yer Notu</label><input id="knNot" value="${esc((r.konum||{}).not||'')}" placeholder="örn. Raf 3, sol köşe" onchange="saveKonum(${r.id})"></div>
  </div>
- ${!KAPALI.includes(r.durum)&&!r.garantiIsi?`<div class="blk b-org"><div class="sec">🔧 Fiyat Öner (usta)</div>
+ ${ARA.includes(r.durum)&&!r.garantiIsi?`<div class="blk b-org"><div class="sec">🔧 Fiyat Öner (usta)</div>
  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="number" id="onTutar" placeholder="TUTAR ${r.pb||'₺'}" style="width:130px" value="${r.oneri?r.oneri.tutar:''}"><input id="onNot" placeholder="NE YAPILACAK? ÖRN. ANAKART DEĞİŞİMİ" style="flex:1;min-width:200px" value="${esc(r.oneri?r.oneri.not:'')}"><button class="btn pri sm" onclick="oneriKaydet(${r.id})">Fiyat Gönder</button></div>
  <div style="font-size:12px;color:var(--mut);margin-top:4px">Fiyat çıkarınca buraya yaz; kayıt "Fiyat Onayı Bekleyen" kartına düşer, banko müşteriyi arar. Onaylanınca üstteki şerit yeşile döner.</div></div>`:''}
  ${onarimBox(r)}
@@ -788,7 +790,8 @@ function openDet(id){
   <div><label>Telefon</label><a href="tel:${esc(r.tel)}">${esc(r.tel)}</a></div>
   ${r.referans?`<div><label>👤 Referans</label><b>${esc(r.referans)}</b></div>`:''}
   <div><label>Teslim Alınma</label>${fmtD(r.tarih)}</div>
-  <div><label>Teslim Şekli</label>${esc(r.teslimSekli)}${r.adres?' - '+esc(r.adres):''}</div>
+  <div><label>Teslim Şekli</label>${esc(r.teslimSekli)}</div>
+  ${r.adres?`<div style="${r.durum==='adres'||(r.teslimSekli||'').startsWith('Adresten')?'grid-column:1/-1':''}"><label>📍 Adres</label><b>${esc(r.adres)}</b></div>`:''}
   ${r.rv&&r.rv.tarih?`<div><label>Randevu</label>${fmtD(r.rv.tarih)}${r.rv.bekle?' · BEKLEYEREK':''}${r.rv.geldi?' · GELDİ '+fmtD(r.rv.geldi):''}</div>`:''}
   ${r.alim&&(r.alim.personel||r.alim.tarih)?`<div><label>Adresten Alım</label>${r.alim.tarih?fmtD(r.alim.tarih):''}${r.alim.personel?' · '+esc(r.alim.personel):''}${r.alim.alindi?' · ALINDI '+fmtD(r.alim.alindi):''}</div>`:''}
   ${r.teslimEden?`<div><label>Adrese Teslim Eden</label>${esc(r.teslimEden)}</div>`:''}
@@ -823,7 +826,7 @@ function ozetHtml(r){
  const s=stOf(r.durum),fs=fyStrip(r);const ga=garAktif(r);
  const R=(l,v,cls)=>v?`<div class="r ${cls||''}"><label>${l}</label><div>${v}</div></div>`:'';
  return `<div class="oz">
- ${!KAPALI.includes(r.durum)?`<div class="strip ${fs.c}" style="margin-bottom:6px">${fs.c==='g'?'✅':fs.c==='o'?'⚠️':'⛔'} ${fs.n}</div>`:''}
+ ${!KAPALI.includes(r.durum)&&r.durum!=='iade'?`<div class="strip ${fs.c}" style="margin-bottom:6px">${fs.c==='g'?'✅':fs.c==='o'?'⚠️':'⛔'} ${fs.n}</div>`:''}
  ${R('DURUM',`<span class="badge" style="background:${s.c}">${s.n}</span>${r.usta?' &nbsp;🔧 '+esc(r.usta):''}${r.konum&&r.konum.yer?' &nbsp;📍 '+esc([r.konum.yer,r.konum.not].filter(Boolean).join(' · ')):''}${r.parcaNot&&r.durum==='parca'?'<br>🔩 '+esc(r.parcaNot):''}`)}
  ${R('MÜŞTERİ',esc(adSoyad(r))+(TIP_TAG[r.tip]||'')+(r.tel?'<br>'+esc(r.tel):''),'big')}
  ${r.referans?R('👤 REFERANS',esc(r.referans)):''}
@@ -835,6 +838,7 @@ function ozetHtml(r){
  ${r.rv&&r.rv.not?R('RANDEVU NOTU',esc(r.rv.not)):''}
  ${r.oneri&&r.fiyatDurum!=='onayli'?R('USTA ÖNERİSİ',tlr(r,r.oneri.tutar)+(r.oneri.not?' — '+esc(r.oneri.not):'')):''}
  ${r.garantiIsi?R('GARANTİ İŞİ',esc(r.garRef||'EVET')):''}
+ ${r.durum==='teslim'&&r.yapilamadi?R('SONUÇ','<b style="color:var(--red)">ONARIM YAPILAMADI — İADE EDİLDİ</b>'):''}
  ${r.onarim?R('ONARIM KAYDI',onarimOzet(r.onarim)):''}
  ${r.garanti.length?R('GARANTİ',r.garanti.map(g=>g.ay>0?esc(g.kapsam)+' '+GAR_SURE.find(x=>x.k===g.ay).n+(r.durum==='teslim'?' → '+fmtDay(g.bitis):''):'YOK'+(g.sebep?' — '+esc(g.sebep):'')).join('<br>')):''}
  ${R('TESLİM ALINDI',fmtD(r.tarih)+' · '+esc(r.alan||'-')+' · '+esc(r.teslimSekli)+(r.adres?'<br>📍 '+esc(r.adres):''))}
@@ -870,7 +874,7 @@ const hbGerek=r=>HB_ST.includes(r.durum)&&!(r.haber&&r.haber.t);
 async function haberVerildi(id,sekil){const r=data.find(x=>x.id==id);r.haber={t:Date.now(),u:me,sekil:sekil||'TELEFON'};logEv(r,'Müşteriye haber verildi ('+(sekil||'TELEFON')+')');if(await dbSave(r)){await loadAll();toast('Haber verildi olarak işaretlendi')}}
 function hbBox(r){if(!HB_ST.includes(r.durum))return '';
  if(r.haber&&r.haber.t)return `<div class="info" style="background:#e8f7ee;border:1px solid #b7e4c7;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>✔ MÜŞTERİYE HABER VERİLDİ</b><span style="color:var(--mut);font-size:13px">${fmtD(r.haber.t)} · ${esc(r.haber.u||'')} · ${esc(r.haber.sekil||'')}</span><button class="btn lt sm" style="margin-left:auto" onclick="haberSil(${r.id})">Geri Al</button></div>`;
- return `<div class="info" style="background:#fef2f2;border:1px solid #fca5a5"><b>📞 MÜŞTERİYE HABER VERİLMEDİ</b> <span style="color:var(--mut);font-size:13px">— ${r.durum==='iade'?'yapılamadığını söyle, almaya çağır':'cihaz hazır, '+(r.durum==='adres'?'teslim günü ayarla':'kalan tutarı söyle, fişiyle çağır')}</span><div class="acts" style="justify-content:flex-start;margin-top:8px"><button class="btn pri" onclick="haberVerildi(${r.id},'TELEFON')">✔ Haber Verildi</button><button class="btn wa" onclick="waMsg(${r.id},true)">WhatsApp</button><button class="btn lt" onclick="hatForm({fis:${r.id},konu:'ULAŞILAMADI — TEKRAR ARA'})">📌 Ulaşılamadı</button></div></div>`}
+ return `<div class="info" style="background:#fef2f2;border:1px solid #fca5a5"><b>📞 MÜŞTERİYE HABER VERİLMEDİ</b> <span style="color:var(--mut);font-size:13px">— ${r.durum==='iade'?'onarım yapılamadı — söyle, cihazı almaya çağır':'cihaz hazır, '+(r.durum==='adres'?'teslim günü ayarla':'kalan tutarı söyle, fişiyle çağır')}</span><div class="acts" style="justify-content:flex-start;margin-top:8px"><button class="btn pri" onclick="haberVerildi(${r.id},'TELEFON')">✔ Haber Verildi</button><button class="btn wa" onclick="waMsg(${r.id},true)">WhatsApp</button><button class="btn lt" onclick="hatForm({fis:${r.id},konu:'ULAŞILAMADI — TEKRAR ARA'})">📌 Ulaşılamadı</button></div></div>`}
 async function haberSil(id){const r=data.find(x=>x.id==id);r.haber=null;logEv(r,'Haber verildi işareti kaldırıldı');if(await dbSave(r)){await loadAll()}}
 function snap(r){return JSON.parse(JSON.stringify(r))}
 function restore(rr,sn){const id=rr.id;Object.keys(rr).forEach(k=>delete rr[k]);Object.assign(rr,sn,{id})}
@@ -882,7 +886,7 @@ async function setDurum(id,k){
  if(k==='tezgah'&&!r.usta){askUsta(id);return}
  const sn=snap(r),prev=r.durum;
  if(KAPALI.includes(prev)&&!confirm('Bu iş kapanmış ('+stOf(prev).n+'). Tekrar açılsın mı?'))return;
- r.durum=k;r.gecmis.push({t:Date.now(),d:k,u:me});r.haber=null;
+ r.durum=k;r.gecmis.push({t:Date.now(),d:k,u:me});r.haber=null;if(k!=='teslim')r.yapilamadi=false;
  if(await dbSave(r)){await loadAll();
   const undo=async()=>{const rr=data.find(x=>x.id==id);restore(rr,sn);logEv(rr,'Geri alındı → '+stOf(prev).n);if(await dbSave(rr)){await loadAll();toast('Geri alındı')}};
   toast('Durum: '+stOf(k).n,0,undo)}
@@ -932,6 +936,7 @@ function askKonum(id,k){
  <div class="chips grn" id="gsChips"></div><input type="hidden" id="gsSure" value="">
  <div id="gsKapsamF" style="margin-top:8px"><label>Kapsam (yapılan iş)</label><div class="chips" id="gkChips" style="margin-top:4px"></div><input type="hidden" id="gkKapsam"><input id="gkDiger" placeholder="YAPILAN İŞİ YAZIN (ÖRN. PANEL + LED BAR)" style="margin-top:6px;display:none"></div>
  <div id="gsSebepF" style="margin-top:8px;display:none"><label>Garanti verilmeme sebebi</label><input id="gsSebep" placeholder="ÖRN. MÜŞTERİ PARÇA GETİRDİ · SU HASARI · SADECE KONTROL" value="${esc(g0&&!g0.ay?g0.sebep:'')}"></div></div>`}
+ ${k==='adres'?`<div class="blk b-org"><div class="sec">🚗 Teslim Adresi *</div><input id="knAdres" value="${esc(r.adres||'')}" placeholder="MAHALLE, SOKAK, NO, İLÇE"><div style="font-size:12px;color:var(--mut);margin-top:4px">Adrese gidecek personel bu adresi görür.</div></div>`:''}
  <div class="blk b-navy"><div class="sec">Cihaz Nerede? *</div>
  <div class="chips" id="knChips">${KONUM.map(x=>`<button class="${x===kn.yer?'on':''}" onclick="[...this.parentNode.children].forEach(b=>b.classList.remove('on'));this.classList.add('on');if(this.textContent==='DEPO')$('knNot').placeholder='DEPO İÇİN RAF NO YAZIN'">${x}</button>`).join('')}</div>
  <div class="f" style="margin-top:8px"><label>Raf / Yer Notu</label><input id="knNot" value="${esc(kn.not||'')}" placeholder="örn. Raf 3, sol köşe, kapı yanı"></div></div>
@@ -959,6 +964,7 @@ async function saveKonum(id,k){
    const g={ay:sure.k,kapsam:sure.k>0?kapsam:'',sebep:sure.k>0?'':$('gsSebep').value.trim(),baslangic:Date.now(),bitis:sure.k>0?new Date(new Date().setMonth(new Date().getMonth()+sure.k)).getTime():0,u:me};
    r.garanti=[g];logEv(r,sure.k>0?'Garanti: '+kapsam+' '+sure.n:'Garanti yok'+(g.sebep?' — '+g.sebep:''))}
   const on=onarimRead();if(on===false)return;
+  if(k==='adres'){const ad=up($('knAdres').value.trim());if(!ad){toast('Teslim adresi zorunlu',1);$('knAdres').focus();return}if(ad!==r.adres){r.adres=ad;logEv(r,'Adres: '+ad)}}
   if(!confirm('Durum "'+stOf(k).n+'" olarak değişecek. Emin misin?'))return;
   if(u!==r.usta){const pv=r.usta;r.usta=u;if(!r.ustaAlan)r.ustaAlan=u;logEv(r,pv?'Devir: '+pv+' → '+u:'Usta: '+u)}
   r.ustaBitiren=u;
@@ -983,18 +989,19 @@ async function setFatura(id,k){const r=data.find(x=>x.id==id);if((r.fatura||'')=
 async function setFaturaKesildi(id,v){const r=data.find(x=>x.id==id);r.faturaKesildi=v;if(v)r.faturaTarih=Date.now();logEv(r,v?'Fatura kesildi':'Fatura kesilmedi olarak işaretlendi');if(await dbSave(r))await loadAll()}
 async function setFaturaNo(id){const r=data.find(x=>x.id==id);r.faturaNo=$('faNo').value.trim();if(await dbSave(r))await loadAll()}
 function askTeslim(id){
- const r=data.find(x=>x.id==id);detLock=true;const top=topOf(r),kal=top-num(r.alinan);
- const noPrice=top===0&&!r.garantiIsi;const needOd=(kal>0||noPrice)&&!r.garantiIsi,needFa=!r.fatura&&!r.garantiIsi;
+ const r=data.find(x=>x.id==id);detLock=true;const top=topOf(r),kal=top-num(r.alinan);const iade=r.durum==='iade';
+ const noPrice=top===0&&!r.garantiIsi;const needOd=(kal>0||noPrice)&&!r.garantiIsi,needFa=!r.fatura&&!r.garantiIsi&&!iade;
  const g0=r.garanti.length?r.garanti[r.garanti.length-1]:null;
- $('det').innerHTML=`<h2>Teslim öncesi kontrol<button class="x" onclick="openDet(${id})">×</button></h2>
+ $('det').innerHTML=`<h2>${iade?'İade — cihaz müşteriye veriliyor':'Teslim öncesi kontrol'}<button class="x" onclick="openDet(${id})">×</button></h2>
  <p style="color:var(--mut);margin:0 0 10px">${r.fisNo} · ${esc(adSoyad(r))} · ${esc(cihazAd(r))} · Toplam ${tlr(r,top)} · Alınan ${tlr(r,r.alinan)}</p>
+ ${iade?`<div class="info" style="background:#fee2e2;border:1px solid #fca5a5"><b>ONARIM YAPILAMADI.</b> Cihaz onarılmadan iade ediliyor; garanti sorulmaz. Ücret varsa (inceleme, nakliye) aşağıya yaz, yoksa 0 bırak.</div>`:''}
  ${needOd?`<div class="blk b-org">${noPrice?`<div class="sec">Ücret girilmemiş</div><div class="f" style="max-width:220px;margin-bottom:8px"><label>Toplam Ücret (${r.pb||'₺'})</label><input type="number" id="tsTop" placeholder="0 = ÜCRETSİZ" oninput="$('odTutar').value=Math.max(0,num(this.value)-${num(r.alinan)})||''"></div>`:''}<div class="sec">${noPrice?'Ödeme alındı mı?':'Kalan '+tlr(r,kal)+' — ödeme alındı mı?'}</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="number" id="odTutar" value="${kal>0?kal:''}" style="width:120px"><div class="chips" id="odChips"></div><input type="hidden" id="odSekil"></div><div style="font-size:12px;color:var(--mut);margin-top:4px">Ödeme alınmadıysa tutarı boş bırak, borç kalan olarak kalır.</div></div>`:''}
  ${needFa?`<div class="blk b-navy"><div class="sec">Fatura kesilecek mi?</div><div class="chips" id="faTChips"><button onclick="[...this.parentNode.children].forEach(b=>b.classList.remove('on'));this.classList.add('on')" data-k="evet">KESİLECEK</button><button onclick="[...this.parentNode.children].forEach(b=>b.classList.remove('on'));this.classList.add('on')" data-k="hayir">KESİLMEYECEK</button></div></div>`:''}
- ${g0||r.garantiIsi?`<div class="blk b-grn"><div class="sec">Garanti</div>${r.garantiIsi?'GARANTİ İŞİ':(g0.ay?`🛡 <b>${esc(g0.kapsam)}: ${GAR_SURE.find(x=>x.k===g0.ay).n}</b> — süre bugünden başlar`:`GARANTİ YOK${g0.sebep?' — '+esc(g0.sebep):''}`)} <button class="btn lt sm" onclick="askKonum(${id},'${r.durum}')">Değiştir</button></div>`:`<div class="blk b-grn"><div class="sec">Garanti *</div>
+ ${iade?'':g0||r.garantiIsi?`<div class="blk b-grn"><div class="sec">Garanti</div>${r.garantiIsi?'GARANTİ İŞİ':(g0.ay?`🛡 <b>${esc(g0.kapsam)}: ${GAR_SURE.find(x=>x.k===g0.ay).n}</b> — süre bugünden başlar`:`GARANTİ YOK${g0.sebep?' — '+esc(g0.sebep):''}`)} <button class="btn lt sm" onclick="askKonum(${id},'${r.durum}')">Değiştir</button></div>`:`<div class="blk b-grn"><div class="sec">Garanti *</div>
  <div class="chips grn" id="gsChips"></div><input type="hidden" id="gsSure" value="">
  <div id="gsKapsamF" style="margin-top:8px"><label>Kapsam (yapılan iş)</label><div class="chips" id="gkChips" style="margin-top:4px"></div><input type="hidden" id="gkKapsam"><input id="gkDiger" placeholder="YAPILAN İŞİ YAZIN" style="margin-top:6px;display:none"></div>
  <div id="gsSebepF" style="margin-top:8px;display:none"><label>Garanti verilmeme sebebi</label><input id="gsSebep" placeholder="ÖRN. MÜŞTERİ PARÇA GETİRDİ · SADECE KONTROL"></div></div>`}
- <div class="acts"><button class="btn lt" onclick="openDet(${id})">Vazgeç</button><button class="btn pri" onclick="finishTeslim(${id})">Teslim Edildi</button></div>`;
+ <div class="acts"><button class="btn lt" onclick="openDet(${id})">Vazgeç</button><button class="btn ${iade?'red':'pri'}" onclick="finishTeslim(${id})">${iade?'İade Edildi — Teslim':'Teslim Edildi'}</button></div>`;
  if(needOd)renderChips('odChips','odSekil',ODEME,'');
  if($('gsChips')){renderChips('gsChips','gsSure',GAR_SURE.map(x=>x.n),'1 YIL',v=>{const yok=v==='GARANTİ YOK';$('gsKapsamF').style.display=yok?'none':'';$('gsSebepF').style.display=yok?'':'none'});$('gsSure').value='1 YIL';renderChips('gkChips','gkKapsam',GAR_KAPSAM,'',v=>{$('gkDiger').style.display=v==='DİĞER'?'':'none'})}
  $('detOv').classList.add('show');
@@ -1006,12 +1013,14 @@ async function finishTeslim(id){
  const fb=document.querySelector('#faTChips .on');if($('faTChips')&&!fb){toast('Fatura kararını seç',1);return}
  if($('gsSure')){const sure=GAR_SURE.find(x=>x.n===$('gsSure').value);if(!sure){toast('Garanti süresini seç',1);return}let kapsam=$('gkKapsam').value;if(kapsam==='DİĞER')kapsam=$('gkDiger').value.trim();if(sure.k>0&&!kapsam){toast('Garanti kapsamını seç (LED BAR, PANEL...)',1);return}
   r.garanti=[{ay:sure.k,kapsam:sure.k>0?kapsam:'',sebep:sure.k>0?'':$('gsSebep').value.trim(),baslangic:Date.now(),bitis:sure.k>0?new Date(new Date().setMonth(new Date().getMonth()+sure.k)).getTime():0,u:me}];logEv(r,sure.k>0?'Garanti: '+kapsam+' '+sure.n:'Garanti yok')}
- if(!r.garanti.length&&!r.garantiIsi){toast('Garanti bilgisi eksik',1);return}
+ const iadeT=r.durum==='iade';
+ if(!iadeT&&!r.garanti.length&&!r.garantiIsi){toast('Garanti bilgisi eksik',1);return}
  const tt=$('tsTop')?num($('tsTop').value):0;if(tt>0){r.iscilik=tt;r.parca=0;r.onayTutar=tt;r.fiyatDurum='onayli';r.onayTarih=r.onayTarih||Date.now();logEv(r,'Teslimde ücret girildi: '+tlr(r,tt))}
  if(t>0){r.odemeler.push({t:Date.now(),tutar:t,sekil:sk,not:'TESLİMDE',u:me,pb:r.pb||'₺'});sumOd(r);logEv(r,'Ödeme: '+tlr(r,t)+' '+sk)}
  if(fb){r.fatura=fb.dataset.k;logEv(r,'Fatura: '+fb.textContent)}
  r.garanti.forEach(g=>{if(g.ay>0){g.baslangic=Date.now();g.bitis=new Date(new Date().setMonth(new Date().getMonth()+g.ay)).getTime()}});
- if(!confirm('Cihaz TESLİM EDİLDİ olarak kapanacak. Emin misin?')){restore(r,sn);return}
+ if(!confirm(iadeT?'Cihaz ONARILMADAN iade edildi olarak kapanacak. Emin misin?':'Cihaz TESLİM EDİLDİ olarak kapanacak. Emin misin?')){restore(r,sn);return}
+ if(iadeT){r.yapilamadi=true;if(!r.garanti.length)r.garanti=[{ay:0,kapsam:'',sebep:'ONARIM YAPILAMADI',baslangic:Date.now(),bitis:0,u:me}]}
  const prev=r.durum;r.durum='teslim';r.teslimTarihi=Date.now();r.gecmis.push({t:Date.now(),d:'teslim',u:me});if(!r.ustaBitiren&&r.usta)r.ustaBitiren=r.usta;r.haber=null;
  if(await dbSave(r)){await loadAll();const undo=async()=>{const rr=data.find(x=>x.id==id);restore(rr,sn);logEv(rr,'Teslim geri alındı → '+stOf(prev).n);if(await dbSave(rr)){await loadAll();openDet(id);toast('Teslim geri alındı')}};if(prev==='adres'||r.teslimSekli==='Adresten Alındı')askTeslimEden(id);else{openDet(id);toast('Teslim edildi',0,undo)}}
 }
@@ -1025,7 +1034,7 @@ function waText(r,forceKey){
  if(!forceKey){
  if(r.durum==='randevu')key='randevu';else if(r.durum==='alinacak')key='alinacak';
  else if(r.fiyatDurum==='bekliyor'&&!KAPALI.includes(r.durum)&&r.tahmini)key='fiyat';
- else if(['parca','hazir','adres','teslim','iade'].includes(r.durum))key=r.durum;}
+ else if(r.durum==='teslim'&&r.yapilamadi)key='iade';else if(['parca','hazir','adres','teslim','iade'].includes(r.durum))key=r.durum;}
  let msg=(cfg.wat&&cfg.wat[key])||WAT_DEF[key]||WAT_DEF.genel;
  const ga=garAktif(r);
  const tarih=r.durum==='randevu'?(r.rv&&r.rv.tarih?fmtD(r.rv.tarih):''):r.durum==='alinacak'?(r.alim&&r.alim.tarih?fmtD(r.alim.tarih):''):fmtDay(r.tarih);
@@ -1146,7 +1155,7 @@ function renderRapor(){
  const gelen=data.filter(r=>inR(r.tarih));
  const teslim=data.filter(r=>r.durum==='teslim'&&inR(r.teslimTarihi));
  const iadeT=r=>{const g=r.gecmis.filter(x=>x.d==='iade').pop();return g?g.t:null};
- const iade=data.filter(r=>r.durum==='iade'&&inR(iadeT(r)));
+ const iade=data.filter(r=>yapilamadi(r)&&inR(iadeT(r)));
  const acik=data.filter(r=>!KAPALI.includes(r.durum));
  const sureler=teslim.map(r=>(r.teslimTarihi-r.tarih)/86400000);const ort=sureler.length?(sureler.reduce((x,y)=>x+y,0)/sureler.length).toFixed(1):'-';
  const odemeler=[];data.forEach(r=>r.odemeler.forEach(o=>{if(inR(o.t))odemeler.push({...o,r})}));
@@ -1163,7 +1172,7 @@ function renderRapor(){
  let body='';
  if(rapTab==='usta'){
   const ust={};const U=u=>ust[u]||(ust[u]={n:u,adet:0,ekran:0,led:0,ana:0,diger:0,iade:0,gar:0,isc:0,iscU:0,gun:[],jobs:[]});
-  bitRange.forEach(r=>{const u=r.ustaBitiren||r.usta||'ATANMAMIŞ';const x=U(u);x.jobs.push(r);if(r.durum==='iade'||r.gecmis.some(g=>g.d==='iade'&&inR(g.t))){x.iade++}else x.adet++;
+  bitRange.forEach(r=>{const u=r.ustaBitiren||r.usta||'ATANMAMIŞ';const x=U(u);x.jobs.push(r);if(yapilamadi(r)||r.gecmis.some(g=>g.d==='iade'&&inR(g.t))){x.iade++}else x.adet++;
    const il=(r.onarim&&r.onarim.isler)||[];if(il.includes('EKRAN / PANEL'))x.ekran++;else if(il.includes('LED BAR'))x.led++;else if(il.includes('ANAKART')||il.includes('POWER / GÜÇ KARTI')||il.includes('T-CON'))x.ana++;else x.diger++;
    const t0=(r.gecmis.find(g=>g.d==='tezgah')||{}).t,t1=bitT(r);if(t0&&t1&&t1>t0)x.gun.push((t1-t0)/86400000)});
   data.filter(r=>r.durum==='teslim'&&inR(r.teslimTarihi)).forEach(r=>{const u=r.ustaBitiren||r.usta||'ATANMAMIŞ';const x=U(u);if((r.pb||'₺')==='$')x.iscU+=num(r.iscilik);else x.isc+=num(r.iscilik)});

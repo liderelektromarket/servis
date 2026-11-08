@@ -46,7 +46,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fmtD=t=>t?new Date(Number(t)).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
 const fmtDay=t=>t?new Date(Number(t)).toLocaleDateString('tr-TR'):'';
 const money=(v,pb)=>Number(v||0).toLocaleString('tr-TR')+' '+(pb||'₺');
-const ST={randevu:['RANDEVULU','#0891b2',0],alinacak:['ADRESİNİZDEN ALINACAK','#7c3aed',0],bekliyor:['SERVİSE ALINDI — SIRADA','#6B7A8F',1],tezgah:['İNCELEME / ONARIMDA','#2563eb',2],parca:['PARÇA BEKLENİYOR','#F26522',2],hazir:['HAZIR — TESLİM ALABİLİRSİNİZ','#16a34a',3],adres:['HAZIR — ADRESİNİZE TESLİM EDİLECEK','#0f766e',3],teslim:['TESLİM EDİLDİ','#0E1A2B',4],iade:['ONARIM YAPILAMADI','#dc2626',3]};
+const ST={randevu:['RANDEVULU','#0891b2',0],alinacak:['ADRESİNİZDEN ALINACAK','#7c3aed',0],bekliyor:['SERVİSE ALINDI — SIRADA','#6B7A8F',1],tezgah:['İNCELEME / ONARIMDA','#2563eb',2],parca:['PARÇA BEKLENİYOR','#F26522',2],hazir:['HAZIR — TESLİM ALABİLİRSİNİZ','#16a34a',3],adres:['HAZIR — ADRESİNİZE TESLİM EDİLECEK','#0f766e',3],teslim:['TESLİM EDİLDİ','#0E1A2B',4],iade:['ONARIM YAPILAMADI — TESLİM ALABİLİRSİNİZ','#dc2626',3]};
 const SURE={3:'3 AY',6:'6 AY',12:'1 YIL',24:'2 YIL'};
 function waLink(tel,msg){let t=String(tel||'').replace(/\D/g,'');if(t.startsWith('0'))t='9'+t;if(t.length===10)t='90'+t;return 'https://wa.me/'+t+'?text='+encodeURIComponent(msg)}
 async function run(){
@@ -54,7 +54,7 @@ async function run(){
  try{const {data:{session}}=await sb.auth.getSession();if(session){location.replace(PROG+'#fis='+F);return}}catch(e){}
  const {data:d,error}=await sb.rpc('sorgu',{p_fis:F,p_kod:K});
  if(error||!d){$('app').innerHTML='<div class="err">Kayıt bulunamadı.<br><small>Fiş numarası veya kod hatalı. Yardım için servisimizi arayın.</small></div>';return}
- const st=ST[d.durum]||ST.bekliyor;const cihaz=[d.cihazTipi+(d.inc?' '+d.inc+'"':''),d.marka,d.model].filter(Boolean).join(' ');
+ const st=(d.durum==='teslim'&&d.yapilamadi)?['TESLİM EDİLDİ (ONARIM YAPILAMADI)','#0E1A2B',4]:(ST[d.durum]||ST.bekliyor);const cihaz=[d.cihazTipi+(d.inc?' '+d.inc+'"':''),d.marka,d.model].filter(Boolean).join(' ');
  const ad=d.tip&&d.tip!=='Bireysel'?(d.firma||d.musteri):d.musteri;
  const steps=['ALINDI','ONARIM','HAZIR','TESLİM'];const si=st[2];
  let boxes='';
@@ -64,7 +64,8 @@ async function run(){
  if(d.durum==='hazir')boxes+=`<div class="box g"><b>✅ Cihazınız hazır.</b><br>${esc(d.adres||'')}<br>Pazartesi – Cumartesi 09:00 – 19:00<br>Teslim alırken lütfen servis fişinizi getiriniz.</div>`;
  if(d.durum==='adres')boxes+=`<div class="box g"><b>✅ Cihazınız hazır.</b><br>Adresinize teslim için sizinle iletişime geçeceğiz.</div>`;
  if(d.durum==='iade')boxes+=`<div class="box r"><b>Cihazınızda onarım yapılamamıştır.</b><br>Cihazınızı servisimizden teslim alabilirsiniz. ${esc(d.adres||'')}</div>`;
- if(d.durum==='teslim'){const gl=(d.garanti||[]).filter(g=>g.ay>0);boxes+=`<div class="box g"><b>Teslim edildi: ${fmtDay(d.teslimTarihi)}</b>${gl.length?'<br>🛡 Garanti: '+gl.map(g=>esc(g.kapsam)+' — '+SURE[g.ay]+' ('+fmtDay(g.bitis)+' tarihine kadar)').join('<br>'):''}<br>Bizi tercih ettiğiniz için teşekkür ederiz.</div>`}
+ if(d.durum==='teslim'&&d.yapilamadi){boxes+=`<div class="box r"><b>Cihazınız onarılamadan teslim edilmiştir.</b> ${fmtDay(d.teslimTarihi)}<br>Sorularınız için servisimizi arayabilirsiniz.</div>`}
+ else if(d.durum==='teslim'){const gl=(d.garanti||[]).filter(g=>g.ay>0);boxes+=`<div class="box g"><b>Teslim edildi: ${fmtDay(d.teslimTarihi)}</b>${gl.length?'<br>🛡 Garanti: '+gl.map(g=>esc(g.kapsam)+' — '+SURE[g.ay]+' ('+fmtDay(g.bitis)+' tarihine kadar)').join('<br>'):''}<br>Bizi tercih ettiğiniz için teşekkür ederiz.</div>`}
  $('app').innerHTML=`<div class="card"><div class="fis">SERVİS FİŞ NO</div><div class="no">${esc(F)}</div><div class="cihaz">${esc(cihaz)}</div>
  <div class="badge" style="background:${st[1]}">${st[0]}</div>
  <div class="steps">${steps.map((x,i)=>`<div class="${i<si?'on':i===si?'cur':''}"></div>`).join('')}</div><div class="sl">${steps.map(x=>`<span>${x}</span>`).join('')}</div>
